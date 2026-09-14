@@ -5,6 +5,7 @@ import pytest
 from dotenv import load_dotenv
 from playwright.sync_api import sync_playwright
 from utils.payloads.booking_payload import booking_payload
+from utils.support.waiters import wait_until_deleted
 import time
 
 load_dotenv()
@@ -59,16 +60,9 @@ def cleanup_booking(request_context, auth_token):
             headers={"Cookie": f"token={auth_token}"}
         )
 
-        for attempt in range(3):
-            response = request_context.get(
-                f"/booking/{booking_id}"
-            )
+        aux = wait_until_deleted(request_context,booking_id, attempts=3, delay=1)
 
-            if response.status == 404:
-                break
-            else:
-                time.sleep(1)
-
+        assert aux
 
 
 
