@@ -1,6 +1,7 @@
 from idlelib.rpc import response_queue
+import pytest
 
-from API.conftest import cleanup_booking
+from API.conftest import cleanup_booking, auth_token
 from utils.payloads.booking_payload import booking_payload
 from utils.payloads.update_payload import update_payload
 from utils.support.waiters import wait_until_deleted
@@ -126,6 +127,45 @@ def test_update_parcial(request_context, auth_token, bookingid):
 
     for field, expected_value in update_parcial_payload.items():
         assert persisted_body[field] == expected_value
+
+def test_get_booking_inexistente(request_context):
+    response = request_context.get(
+        "/booking/{9999999999999999}"
+    )
+
+    assert response.status == 404
+
+
+def test_update_without_token(request_context, bookingid):
+    response = request_context.put(
+        f"/booking/{bookingid}",
+        data=update_payload
+    )
+
+    assert response.status == 403
+
+
+@pytest.mark.parametrize("campo", [
+    "firstname",
+    "lastname",
+    "totalprice",
+    "depositpaid",
+    "bookingdates"
+])
+def test_new_incomplete_booking(campo,request_context):
+
+    payload = booking_payload.copy()
+    payload.pop(campo)
+
+    response = request_context.post(
+        "/booking",
+        data=payload
+    )
+
+    # API não valida corretamente payloads incompletos: ao invés de 400,
+    # retorna 500
+
+    assert response.status == 500
 
 
 
